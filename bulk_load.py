@@ -57,7 +57,8 @@ def copy_from_stringio_auto_increment(conn, df, table, append=True):
     """
     # Check if the table exists
     cursor = conn.cursor()
-    cursor.execute(f"SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = '{table}')")
+    cursor.execute(f"SELECT 1 FROM information_schema.tables WHERE table_name = '{table}'")
+    exists = cursor.fetchone() is not None
     exists = cursor.fetchone()[0]
     if exists:
         if append:
