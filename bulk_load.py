@@ -17,14 +17,19 @@ def connect_mssql(param_dic):
     conn = None
     try:
         conn = pyodbc.connect(
-            "DRIVER={SQL Server Native Client 11.0};"
+            "DRIVER={ODBC Driver 17 for SQL Server};"
             "SERVER="
             + param_dic["host"]
             + ";"
             "DATABASE="
             + param_dic["database"]
             + ";"
-            "Trusted_Connection=yes;"
+            "UID="
+            + param_dic["user"]
+            + ";"
+            "PWD="
+            + param_dic["password"]
+            + ";"
         )
         print("Connection successful")
     except Exception as e:
@@ -103,7 +108,7 @@ def copy_from_stringio_auto_increment(conn, df, table, append=True):
 def bulk_load_mssql(conn, df, table):
     cursor = conn.cursor()
     # Check if the table exists
-    cursor.execute(f"IF OBJECT_ID('{table}', 'U') IS NOT NULL SELECT 1 ELSE SELECT 0")
+    cursor.execute(f"SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = '{table}')")
     exists = cursor.fetchone()[0]
     if exists:
         print(f"Table {table} already exists. Dropping it and creating a new one.")
@@ -126,15 +131,14 @@ def bulk_load_mssql(conn, df, table):
         {columns}
     )
     """)
-    # save dataframe to an in memory buffer
-    buffer = StringIO()
-    df.to_csv(buffer, index=False, header=False, sep="|")
-    buffer.seek(0)
+    # Insert data into the table
+    placeholders = ", ".join(["?"] * len(df.columns))
+    insert_query = f"INSERT INTO {table} ({', '.join(df.columns)}) VALUES ({placeholders})"
+    data = [tuple(row) for row in df.to_numpy()]
     try:
-        for row in buffer:
-            cursor.execute(f"INSERT INTO {table} VALUES ({', '.join(['?' for _ in row.split('|')])})", row.split('|'))
+        cursor.executemany(insert_query, data)
         conn.commit()
-    except Exception as error:
+    except (Exception, pyodbc.DatabaseError) as error:
         print("Error: %s" % error)
         conn.rollback()
         cursor.close()
