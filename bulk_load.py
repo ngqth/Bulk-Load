@@ -57,8 +57,7 @@ def copy_from_stringio_auto_increment(conn, df, table, append=True):
     """
     # Check if the table exists
     cursor = conn.cursor()
-    cursor.execute(f"SELECT 1 FROM information_schema.tables WHERE table_name = '{table}'")
-    exists = cursor.fetchone() is not None
+    cursor.execute(f"SELECT 1 FROM sys.tables WHERE name = '{table}'")
     exists = cursor.fetchone()[0]
     if exists:
         if append:
@@ -109,7 +108,7 @@ def copy_from_stringio_auto_increment(conn, df, table, append=True):
 def bulk_load_mssql(conn, df, table):
     cursor = conn.cursor()
     # Check if the table exists
-    cursor.execute(f"SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = '{table}')")
+    cursor.execute(f"SELECT 1 FROM sys.tables WHERE name = '{table}'")
     exists = cursor.fetchone()[0]
     if exists:
         print(f"Table {table} already exists. Dropping it and creating a new one.")
@@ -132,19 +131,19 @@ def bulk_load_mssql(conn, df, table):
         {columns}
     )
     """)
-    # Insert data into the table
-    placeholders = ", ".join(["?"] * len(df.columns))
-    insert_query = f"INSERT INTO {table} ({', '.join(df.columns)}) VALUES ({placeholders})"
-    data = [tuple(row) for row in df.to_numpy()]
+    # save dataframe to an in memory buffer
+    buffer = StringIO()
+    df.to_csv(buffer, index=False, header=False, sep="|")
+    buffer.seek(0)
     try:
-        cursor.executemany(insert_query, data)
+        cursor.copy_from(buffer, table, sep="|")
         conn.commit()
-    except (Exception, pyodbc.DatabaseError) as error:
+    except (Exception, psycopg2.DatabaseError) as error:
         print("Error: %s" % error)
         conn.rollback()
         cursor.close()
         return 1
-    print("bulk_load_mssql() done")
+    print("copy_from_stringio() done")
     cursor.close()
 
 # Run the execute_many strategy
