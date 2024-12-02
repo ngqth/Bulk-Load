@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 
 param_dic = {
-    "host": "192.168.8.149",
-    "database": "postgres",
-    "user": "postgres",
-    "password": "7898",
+    "host": "*********",
+    "database": "*********",
+    "user": "*********",
+    "password": "*********",
 }
 
 
