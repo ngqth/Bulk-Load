@@ -80,6 +80,52 @@ def copy_from_stringio_auto_increment(conn, df, table, append=True):
     print("copy_from_stringio() done")
     cursor.close()
 
+# Write function for bulk load to ms sql database
+def bulk_load(conn, df, table):
+    """
+    Here we are going save the dataframe in memory
+    and use copy_from() to copy it to the table
+    """
+    # Check if the table exists
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = '{table}')")
+    exists = cursor.fetchone()[0]
+    if exists:
+        cursor.execute(f"DROP TABLE {table}")
+        print(f"Table {table} already exists. Dropping it and creating a new one.")
+    # Dynamically create table schema
+    columns = ", ".join(
+        [
+            f"{col} TEXT"
+            if df[col].dtype == "object"
+            else f"{col} FLOAT"
+            if df[col].dtype == "float64"
+            else f"{col} INT"
+            for col in df.columns
+        ]
+    )
+    print(columns)
+    cursor.execute(f"""
+    CREATE TABLE IF NOT EXISTS {table} (
+        id SERIAL PRIMARY KEY,
+        {columns}
+    )
+    """)
+    # save dataframe to an in memory buffer
+    buffer = StringIO()
+    df.to_csv(buffer, index_label="id", header=False, sep="|")
+    buffer.seek(0)
+
+    try:
+        cursor.copy_from(buffer, table, sep="|")
+        conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print("Error: %s" % error)
+        conn.rollback()
+        cursor.close()
+        return 1
+    print("copy_from_stringio() done")
+    cursor.close()
 
 # Run the execute_many strategy
 conn = connect(param_dic)
