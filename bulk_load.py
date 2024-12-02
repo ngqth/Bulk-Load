@@ -17,7 +17,7 @@ def connect_mssql(param_dic):
     conn = None
     try:
         conn = pyodbc.connect(
-            "DRIVER={ODBC Driver 17 for SQL Server};"
+            "DRIVER={SQL Server Native Client 11.0};"
             "SERVER="
             + param_dic["host"]
             + ";"
