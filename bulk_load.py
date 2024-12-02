@@ -129,7 +129,7 @@ def bulk_load_mssql(conn, df, table):
     print(columns)
     cursor.execute(f"""
     CREATE TABLE {table} (
-        id INT IDENTITY(1,1) PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         {columns}
     )
     """)
