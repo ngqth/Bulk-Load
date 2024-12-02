@@ -58,7 +58,8 @@ def copy_from_stringio_auto_increment(conn, df, table, append=True):
     # Check if the table exists
     cursor = conn.cursor()
     cursor.execute(f"SELECT 1 FROM sys.tables WHERE name = '{table}'")
-    exists = cursor.fetchone()[0]
+    result = cursor.fetchone()
+    exists = result[0] if result else False
     if exists:
         if append:
             print(f"Table {table} already exists. Appending data.")
@@ -109,7 +110,8 @@ def bulk_load_mssql(conn, df, table):
     cursor = conn.cursor()
     # Check if the table exists
     cursor.execute(f"SELECT 1 FROM sys.tables WHERE name = '{table}'")
-    exists = cursor.fetchone()[0]
+    result = cursor.fetchone()
+    exists = result[0] if result else False
     if exists:
         print(f"Table {table} already exists. Dropping it and creating a new one.")
         cursor.execute(f"DROP TABLE {table}")
