@@ -24,12 +24,7 @@ def connect_mssql(param_dic):
             "DATABASE="
             + param_dic["database"]
             + ";"
-            "UID="
-            + param_dic["user"]
-            + ";"
-            "PWD="
-            + param_dic["password"]
-            + ";"
+            "Trusted_Connection=yes;"
         )
         print("Connection successful")
     except Exception as e:
